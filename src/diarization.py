@@ -50,29 +50,35 @@ class Turn:
         return self.end - self.start
 
 
-def _embed_segments(wav: np.ndarray, sr: int, segments: list[WhisperSegment]) -> np.ndarray:
+def embed_segment(wav: np.ndarray, sr: int, seg: WhisperSegment) -> np.ndarray | None:
+    """Voice embedding for one segment's audio slice, or None if the clip
+    is too short/silent to embed reliably. Split out from embed_segments
+    so a streaming caller can embed each new segment once and cache it,
+    instead of recomputing embeddings for already-seen segments on every
+    incremental re-cluster."""
     encoder = _get_encoder()
-    embeddings = []
-    for seg in segments:
-        start_i, end_i = int(seg.start * sr), int(seg.end * sr)
-        clip = wav[start_i:end_i]
-        if len(clip) < sr * config.MIN_SEGMENT_DURATION_FOR_EMBEDDING:
-            embeddings.append(None)
-            continue
-        processed = preprocess_wav(clip, source_sr=sr)
-        if len(processed) == 0:
-            embeddings.append(None)
-            continue
-        embeddings.append(encoder.embed_utterance(processed))
-    return embeddings
+    start_i, end_i = int(seg.start * sr), int(seg.end * sr)
+    clip = wav[start_i:end_i]
+    if len(clip) < sr * config.MIN_SEGMENT_DURATION_FOR_EMBEDDING:
+        return None
+    processed = preprocess_wav(clip, source_sr=sr)
+    if len(processed) == 0:
+        return None
+    return encoder.embed_utterance(processed)
 
 
-def label_speakers(wav: np.ndarray, sr: int, segments: list[WhisperSegment]) -> list[Turn]:
-    """Assign a Teacher/Student role to every Whisper segment."""
+def embed_segments(wav: np.ndarray, sr: int, segments: list[WhisperSegment]) -> list[np.ndarray | None]:
+    return [embed_segment(wav, sr, seg) for seg in segments]
+
+
+def cluster_and_label(segments: list[WhisperSegment], embeddings: list[np.ndarray | None]) -> list[Turn]:
+    """Assign a Teacher/Student role to every segment given precomputed
+    embeddings. Safe to call repeatedly on a growing segment/embedding
+    list (e.g. once per chunk while streaming) - role assignment simply
+    refines as more evidence about who talks the most arrives."""
     if not segments:
         return []
 
-    embeddings = _embed_segments(wav, sr, segments)
     valid_idx = [i for i, e in enumerate(embeddings) if e is not None]
 
     if len(valid_idx) < 2:
@@ -112,6 +118,15 @@ def label_speakers(wav: np.ndarray, sr: int, segments: list[WhisperSegment]) -> 
         for seg, cid in zip(segments, raw_labels)
     ]
     return _merge_adjacent_turns(turns)
+
+
+def label_speakers(wav: np.ndarray, sr: int, segments: list[WhisperSegment]) -> list[Turn]:
+    """Assign a Teacher/Student role to every Whisper segment in one shot
+    (embeds + clusters). Used by the non-streaming pipeline; the streaming
+    pipeline calls embed_segment/cluster_and_label directly to reuse
+    embeddings across incremental re-clusters."""
+    embeddings = embed_segments(wav, sr, segments)
+    return cluster_and_label(segments, embeddings)
 
 
 def _merge_adjacent_turns(turns: list[Turn]) -> list[Turn]:

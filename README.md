@@ -42,6 +42,45 @@ MakerGhat Full-Stack Developer pre-work assignment.
    handful of extracted highlight lines (longest questions / longest answers).
 6. **Demo UI** — a Streamlit app showing the transcript, metrics dashboard, and
    summary for either a precomputed sample session or an audio file you upload.
+7. **Streaming** — uploaded audio is processed incrementally (see [§2a](#2a-streaming-design)),
+   so a long recording starts showing transcript and live-updating metrics
+   within seconds instead of only after the whole file finishes.
+
+## 2a. Streaming design
+
+`faster-whisper` already decodes and yields segments lazily as it works through
+the audio — it doesn't wait for the whole file before returning anything.
+`process_audio_streaming()` (`src/pipeline.py`) consumes that generator
+directly and, roughly every 45 seconds of newly-transcribed audio
+(`STREAM_CHUNK_SECONDS` in `config.py`), re-runs speaker clustering and every
+metric over *everything seen so far* and yields a fresh partial result.
+
+This was a deliberate choice over the more obvious-looking alternative of
+manually slicing the audio file into separate ~45s chunks and calling Whisper
+on each one independently: pre-slicing loses cross-chunk context (worse
+transcription right at each cut, and a sentence spanning a chunk boundary gets
+mangled), needs N separate model invocations instead of one, and duplicates
+work Whisper is already doing internally. Piggybacking on Whisper's own
+lazy generator gets the identical "results within seconds" UX for free, with
+none of that downside.
+
+On the UI side (`app.py`), there's no custom WebSocket server — Streamlit's
+existing connection between server and browser already pushes incremental
+updates as `st.empty()` placeholders are rewritten during a single script
+run, so re-rendering the transcript/metrics inside the `for partial in
+process_audio_streaming(...)` loop is enough to get the same live-updating
+effect without a second piece of server infrastructure. The CLI
+(`scripts/run_pipeline.py --stream`) uses the same generator to print
+progress instead of running silently.
+
+One consequence worth knowing: because every yielded result re-clusters
+*all* segments so far (not just the newest chunk), the Teacher/Student role
+assignment and the metrics can shift slightly between early updates as more
+evidence about who talks the most arrives — e.g. dominance flipping from
+"student-led" to "lecture-dominated" a few chunks in. This is expected: each
+individual update is internally consistent (a correct running total, not a
+fragment), it just isn't monotonic while there's minimal data. It naturally
+settles down once a few chunks have accumulated.
 
 ## 2. Architecture
 
@@ -166,13 +205,17 @@ python scripts/run_pipeline.py data/sample/classroom_sample.mp3 --name classroom
 # Process your own audio (auto-detects language; force with --language hi):
 python scripts/run_pipeline.py path/to/audio.mp3 --name my_session
 
+# Same, but print progress instead of waiting silently for the whole file:
+python scripts/run_pipeline.py path/to/audio.mp3 --name my_session --stream
+
 # Launch the demo UI:
 streamlit run app.py
 ```
 
 Processing time on CPU is roughly real-time-ish for the `small` model
 (~1 hour audio ≈ 30-60 min transcription depending on hardware); use
-`--model tiny` or `--max-duration 300` for a quick smoke test.
+`--model tiny` or `--max-duration 300` for a quick smoke test, or `--stream`
+to watch progress rather than waiting on a silent terminal either way.
 
 ## 7. Testing
 
@@ -185,7 +228,9 @@ computation, and the metric formulas — the parts most likely to have an
 off-by-one or wrong-threshold bug, and the parts you can verify without
 running the ML models at all.
 
-## 8. Deployment (Streamlit Community Cloud)
+## 8. Deployment
+
+**Option A — Streamlit Community Cloud (recommended, easiest):**
 
 1. Push this repo to GitHub (public, since Streamlit Cloud's free tier needs
    a public repo or a linked private one).
@@ -195,6 +240,20 @@ running the ML models at all.
 4. First load will build the environment from `requirements.txt` (a few
    minutes, since `faster-whisper`/`resemblyzer` pull in ctranslate2/torch);
    subsequent loads are fast.
+
+**Option B — Hugging Face Spaces (Docker):** the repo includes a `Dockerfile`
+(listens on port 7860, the port HF's Docker SDK expects). Create a Space at
+[huggingface.co/new-space](https://huggingface.co/new-space) with SDK
+**Docker**, then push this repo to the Space's git remote. HF Spaces' free
+CPU-basic tier is more generous on RAM (~16GB) than Streamlit Cloud's (~1GB),
+which matters for the `torch`/`faster-whisper` stack — but as of writing,
+non-Static Spaces may require a verified payment method on the account even
+on the free tier.
+
+**Option C — self-hosted (e.g. AWS EC2 free tier):** `streamlit run app.py
+--server.port=8501 --server.address=0.0.0.0` behind any reverse proxy, or run
+the included `Dockerfile` directly. A free-tier `t2.micro`/`t3.micro` only has
+1GB RAM, so add a swap file before `pip install -r requirements.txt`.
 
 ## 9. Known limitations
 
@@ -206,3 +265,6 @@ running the ML models at all.
   "no speech", which isn't always literal silence.
 - Whisper's language auto-detect can pick the wrong language on very short or
   noisy clips; pin it with `--language hi` (or another ISO code) when known.
+- In streaming mode, early partial results can be noisier than the final one
+  (role assignment and metrics refine as more of the recording is seen —
+  see [§2a](#2a-streaming-design)).

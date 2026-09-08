@@ -12,6 +12,12 @@ WHISPER_LANGUAGE = None               # None = auto-detect. Force "hi" to pin Hi
 WHISPER_BEAM_SIZE = 5
 VAD_FILTER = True                     # drop non-speech before transcribing
 
+# --- Streaming ---
+# process_audio_streaming() flushes an incremental result after roughly
+# this many new seconds of transcribed audio, so a caller (UI, CLI) can
+# show progress instead of waiting for the whole file.
+STREAM_CHUNK_SECONDS = 45.0
+
 # --- Speaker turn construction ---
 # Whisper segments are merged into a "turn" as long as the same speaker
 # keeps talking and the gap between segments is below this threshold.

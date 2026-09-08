@@ -20,7 +20,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from src import config
-from src.pipeline import list_cached, load_cached, process_audio
+from src.pipeline import list_cached, load_cached, process_audio_streaming
 
 st.set_page_config(page_title="Classroom Voice Analytics", layout="wide")
 
@@ -116,7 +116,9 @@ def main():
         st.info(
             f"Live mode uses the '{config.WHISPER_MODEL_SIZE_FAST}' Whisper model and processes at most "
             f"the first {LIVE_MODE_MAX_SECONDS//60} minutes, to keep inference time reasonable on shared "
-            "hosting. For full-length, higher-accuracy runs, use scripts/run_pipeline.py locally."
+            "hosting. Results stream in as the audio is transcribed — you'll see transcript and metrics "
+            "within seconds, updating live, rather than waiting for the whole clip. For full-length, "
+            "higher-accuracy runs, use scripts/run_pipeline.py locally."
         )
         uploaded = st.file_uploader("Upload a classroom audio clip", type=["mp3", "wav", "m4a", "ogg"])
         language = st.text_input("Force language code (optional, e.g. 'hi'). Leave blank to auto-detect.")
@@ -124,14 +126,28 @@ def main():
             with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded.name).suffix) as tmp:
                 tmp.write(uploaded.read())
                 tmp_path = tmp.name
-            with st.spinner("Transcribing and analyzing... this can take a minute."):
-                result = process_audio(
-                    tmp_path,
-                    model_size=config.WHISPER_MODEL_SIZE_FAST,
-                    language=language or None,
-                    max_duration_sec=LIVE_MODE_MAX_SECONDS,
+
+            progress_bar = st.progress(0.0, text="Starting transcription...")
+            results_area = st.empty()
+
+            for partial in process_audio_streaming(
+                tmp_path,
+                model_size=config.WHISPER_MODEL_SIZE_FAST,
+                language=language or None,
+                max_duration_sec=LIVE_MODE_MAX_SECONDS,
+            ):
+                total = partial.get("total_duration_sec") or partial["duration_sec"] or 1.0
+                frac = min(partial["duration_sec"] / total, 1.0)
+                status = (
+                    "Done."
+                    if partial["is_final"]
+                    else f"Transcribed {partial['duration_sec']:.0f}s / {total:.0f}s..."
                 )
-            render_result(result)
+                progress_bar.progress(frac, text=status)
+                with results_area.container():
+                    render_result(partial)
+
+            progress_bar.empty()
 
 
 if __name__ == "__main__":

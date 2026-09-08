@@ -38,24 +38,14 @@ def _load_model(model_size: str) -> WhisperModel:
     return WhisperModel(model_size, device="cpu", compute_type=config.WHISPER_COMPUTE_TYPE)
 
 
-def transcribe(
-    audio_path: str,
-    model_size: str = config.WHISPER_MODEL_SIZE,
-    language: str | None = config.WHISPER_LANGUAGE,
-    max_duration_sec: float | None = None,
-) -> TranscriptionResult:
-    """Transcribe an audio file to timestamped segments.
-
-    max_duration_sec: if set, only the first N seconds are processed. Used
-    by the hosted demo to keep inference time bounded on free-tier compute.
-    """
+def _start_transcription(audio_path: str, model_size: str, language: str | None, max_duration_sec: float | None):
     model = _load_model(model_size)
 
     clip_kwargs = {}
     if max_duration_sec:
         clip_kwargs["clip_timestamps"] = f"0,{max_duration_sec}"
 
-    segments_iter, info = model.transcribe(
+    return model.transcribe(
         audio_path,
         language=language,
         beam_size=config.WHISPER_BEAM_SIZE,
@@ -63,6 +53,22 @@ def transcribe(
         vad_parameters={"min_silence_duration_ms": 500},
         **clip_kwargs,
     )
+
+
+def transcribe(
+    audio_path: str,
+    model_size: str = config.WHISPER_MODEL_SIZE,
+    language: str | None = config.WHISPER_LANGUAGE,
+    max_duration_sec: float | None = None,
+) -> TranscriptionResult:
+    """Transcribe an audio file to timestamped segments, blocking until the
+    whole file is done. Use transcribe_stream instead if the caller wants
+    to react to segments as they arrive rather than wait for all of them.
+
+    max_duration_sec: if set, only the first N seconds are processed. Used
+    by the hosted demo to keep inference time bounded on free-tier compute.
+    """
+    segments_iter, info = _start_transcription(audio_path, model_size, language, max_duration_sec)
 
     segments = [
         WhisperSegment(start=s.start, end=s.end, text=s.text.strip())
@@ -77,3 +83,29 @@ def transcribe(
         duration=duration,
         segments=segments,
     )
+
+
+def transcribe_stream(
+    audio_path: str,
+    model_size: str = config.WHISPER_MODEL_SIZE,
+    language: str | None = config.WHISPER_LANGUAGE,
+    max_duration_sec: float | None = None,
+):
+    """Like transcribe(), but yields results as faster-whisper produces
+    them instead of collecting the whole file first - faster-whisper's
+    `segments` is already a lazy generator internally (it decodes/decodes
+    the audio in ~30s windows and yields each window's segments as soon as
+    they're ready), so this just avoids throwing that laziness away by
+    materializing a list.
+
+    Usage:
+        gen = transcribe_stream(path)
+        info = next(gen)          # language, probability, total duration
+        for segment in gen:       # WhisperSegment, one at a time
+            ...
+    """
+    segments_iter, info = _start_transcription(audio_path, model_size, language, max_duration_sec)
+    yield info
+    for s in segments_iter:
+        if s.text and s.text.strip():
+            yield WhisperSegment(start=s.start, end=s.end, text=s.text.strip())
