@@ -4,8 +4,8 @@ Converts raw classroom audio into a speaker-labeled transcript, teacher/student
 engagement metrics, and an auto-generated classroom summary — built as the
 MakerGhat Full-Stack Developer pre-work assignment.
 
-**Live demo:** _[add Streamlit Cloud URL after deployment]_
-**Repo:** _[add GitHub URL]_
+**Live demo:** _[add Streamlit Cloud URL after deployment — see §8]_
+**Repo:** https://github.com/aflahsidhique/Classroom-Voice-Analytics
 
 ---
 
