@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+data/raw_audio/
+*.mp3
+*.wav
+!data/sample/*.mp3
+!data/sample/*.wav
+.streamlit/secrets.toml
+.DS_Store
+*.egg-info/
+.pytest_cache/
+.claude/

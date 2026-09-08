@@ -1,0 +1,153 @@
+{
+  "audio_file": "classroom_sample.mp3",
+  "language": "en",
+  "language_probability": 0.9996256828308105,
+  "duration_sec": 82.3574375,
+  "turns": [
+    {
+      "start": 0.0,
+      "end": 11.28,
+      "text": "Good morning everyone. Today we are going to learn about photosynthesis. Can anyone tell me, what do plants need to make their own food?",
+      "speaker": "Teacher",
+      "is_question": true,
+      "is_response": false
+    },
+    {
+      "start": 11.28,
+      "end": 15.03,
+      "text": "Sunlight, water and carbon dioxide.",
+      "speaker": "Student",
+      "is_question": false,
+      "is_response": true
+    },
+    {
+      "start": 15.03,
+      "end": 21.36,
+      "text": "Excellent answer. And where does photosynthesis take place in the plant cell?",
+      "speaker": "Teacher",
+      "is_question": true,
+      "is_response": false
+    },
+    {
+      "start": 21.36,
+      "end": 24.98,
+      "text": "In the chloroplast. Correct.",
+      "speaker": "Student",
+      "is_question": false,
+      "is_response": true
+    },
+    {
+      "start": 24.98,
+      "end": 41.24,
+      "text": "Now, why do you think leaves are green? It's because of a pigment called chlorophyll. Chlorophyll absorbs red and blue light and reflects green light. Does everyone understand this so far?",
+      "speaker": "Teacher",
+      "is_question": true,
+      "is_response": false
+    },
+    {
+      "start": 41.24,
+      "end": 44.34,
+      "text": "Yes ma'am. Great.",
+      "speaker": "Student",
+      "is_question": false,
+      "is_response": true
+    },
+    {
+      "start": 44.34,
+      "end": 51.74,
+      "text": "Let's move to the next topic. What is the difference between photosynthesis and respiration?",
+      "speaker": "Teacher",
+      "is_question": true,
+      "is_response": false
+    },
+    {
+      "start": 51.74,
+      "end": 60.68,
+      "text": "Respiration uses oxygen and releases carbon dioxide, but photosynthesis uses carbon dioxide and releases oxygen.",
+      "speaker": "Student",
+      "is_question": false,
+      "is_response": true
+    },
+    {
+      "start": 60.68,
+      "end": 75.63,
+      "text": "Very good, that is a complete answer. Now let's do a quick activity. Open your textbooks to page 42. Has everyone found the diagram?",
+      "speaker": "Teacher",
+      "is_question": true,
+      "is_response": false
+    },
+    {
+      "start": 75.63,
+      "end": 78.38,
+      "text": "Yes. Good.",
+      "speaker": "Student",
+      "is_question": false,
+      "is_response": true
+    },
+    {
+      "start": 78.38,
+      "end": 81.62,
+      "text": "Please label the parts of the leaf shown in the diagram.",
+      "speaker": "Teacher",
+      "is_question": true,
+      "is_response": false
+    }
+  ],
+  "metrics": {
+    "duration_sec": 82.3574375,
+    "teacher_talk_sec": 59.46000000000001,
+    "student_talk_sec": 22.16,
+    "silence_sec": 0.7374374999999986,
+    "teacher_turns": 6,
+    "student_turns": 5,
+    "teacher_questions": 6,
+    "student_responses": 5,
+    "metrics": [
+      {
+        "name": "Teacher Dominance Ratio",
+        "value": 0.728,
+        "unit": "ratio (0-1)",
+        "formula": "teacher_talk_time / (teacher_talk_time + student_talk_time)",
+        "explanation": "Share of total classroom speech that came from the teacher.",
+        "interpretation": "Lecture-dominated: the teacher held the floor for most of the session."
+      },
+      {
+        "name": "Student Participation Rate",
+        "value": 0.833,
+        "unit": "ratio (0-1, can exceed 1)",
+        "formula": "student_responses / teacher_questions",
+        "explanation": "Fraction of teacher questions that were followed by a student turn within 12s (a proxy for an answer).",
+        "interpretation": "High participation: most teacher questions received a student response."
+      },
+      {
+        "name": "Interaction Density",
+        "value": 7.29,
+        "unit": "speaker switches / minute",
+        "formula": "count(speaker role changes) / duration_minutes",
+        "explanation": "How often the floor alternates between teacher and student(s) per minute.",
+        "interpretation": "Highly interactive: frequent back-and-forth between teacher and students."
+      },
+      {
+        "name": "Silence Ratio",
+        "value": 0.009,
+        "unit": "ratio (0-1)",
+        "formula": "silence_time / total_duration",
+        "explanation": "Portion of the recording with no detected speech from anyone.",
+        "interpretation": "Very little silence: near-continuous talking throughout the session."
+      }
+    ]
+  },
+  "summary": "This session ran for 1.4 min. The teacher spoke for 1.0 min (73% of total talk time) across 6 turns; students spoke for 0.4 min across 5 turns. The teacher asked an estimated 6 question(s), of which 5 were followed by a student response (83% response rate). The floor switched between teacher and students about 7.3 times per minute (highly interactive). Roughly 1% of the recording had no detected speech (0.0 min of silence/noise). Lecture-dominated: the teacher held the floor for most of the session.",
+  "highlights": [
+    "Q (25s): Now, why do you think leaves are green? It's because of a pigment called chlorophyll. Chlorophyll absorbs red and blue light and reflects green light. Does everyone understand this so far?",
+    "Q (0s): Good morning everyone. Today we are going to learn about photosynthesis. Can anyone tell me, what do plants need to make their own food?",
+    "Q (61s): Very good, that is a complete answer. Now let's do a quick activity. Open your textbooks to page 42. Has everyone found the diagram?",
+    "Q (44s): Let's move to the next topic. What is the difference between photosynthesis and respiration?",
+    "Q (15s): Excellent answer. And where does photosynthesis take place in the plant cell?",
+    "A (52s): Respiration uses oxygen and releases carbon dioxide, but photosynthesis uses carbon dioxide and releases oxygen.",
+    "A (11s): Sunlight, water and carbon dioxide.",
+    "A (21s): In the chloroplast. Correct.",
+    "A (41s): Yes ma'am. Great.",
+    "A (76s): Yes. Good."
+  ]
+}
