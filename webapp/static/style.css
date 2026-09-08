@@ -1,0 +1,154 @@
+:root {
+  --teacher: #2563eb;
+  --student: #f59e0b;
+  --silence: #cbd5e1;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --bg-soft: #f8fafc;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: #ffffff;
+}
+
+header {
+  padding: 32px 24px 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+header h1 { margin: 0 0 8px; font-size: 1.8rem; }
+header p { color: var(--muted); margin: 0; }
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.panel h2 { margin-top: 0; font-size: 1.1rem; }
+
+.row { display: flex; gap: 10px; align-items: center; }
+
+select, input[type="text"], input[type="file"] {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--teacher);
+  background: var(--teacher);
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+button:hover { opacity: 0.9; }
+
+.hint {
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+#upload-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+
+.progress-wrap { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--teacher);
+  transition: width 0.3s ease;
+}
+#progress-label { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+
+.error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.metric-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.metric-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.metric-card .label { font-size: 0.8rem; color: var(--muted); }
+.metric-card .value { font-size: 1.4rem; font-weight: 600; }
+
+.formulas { margin-top: 10px; font-size: 0.9rem; }
+.formulas summary { cursor: pointer; color: var(--teacher); }
+.formulas .formula-row { margin: 10px 0; }
+.formulas code {
+  background: var(--bg-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.talktime-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.talktime-bar > div { height: 100%; }
+.talktime-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.talktime-legend span.swatch {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+#highlights-list { padding-left: 18px; font-size: 0.9rem; }
+#highlights-list li { margin-bottom: 6px; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--bg-soft); position: sticky; top: 0; }
+tr.speaker-Teacher { background: color-mix(in srgb, var(--teacher) 8%, white); }
+tr.speaker-Student { background: color-mix(in srgb, var(--student) 8%, white); }
+td.time { white-space: nowrap; color: var(--muted); }

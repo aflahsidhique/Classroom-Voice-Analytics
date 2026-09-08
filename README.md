@@ -40,8 +40,9 @@ MakerGhat Full-Stack Developer pre-work assignment.
 5. **Summary** — a deterministic, template-based paragraph generated straight
    from the computed stats (no LLM call — offline, free, reproducible), plus a
    handful of extracted highlight lines (longest questions / longest answers).
-6. **Demo UI** — a Streamlit app showing the transcript, metrics dashboard, and
-   summary for either a precomputed sample session or an audio file you upload.
+6. **Demo UI** — two independent frontends on the same pipeline: a Streamlit
+   app (`app.py`) and a plain HTML/CSS/JS + Flask app (`webapp/`) — see
+   [§2b](#2b-two-frontends).
 7. **Streaming** — uploaded audio is processed incrementally (see [§2a](#2a-streaming-design)),
    so a long recording starts showing transcript and live-updating metrics
    within seconds instead of only after the whole file finishes.
@@ -82,6 +83,46 @@ individual update is internally consistent (a correct running total, not a
 fragment), it just isn't monotonic while there's minimal data. It naturally
 settles down once a few chunks have accumulated.
 
+## 2b. Two frontends
+
+Both frontends are thin UI layers over the same `src/` pipeline - neither
+contains any transcription/diarization/metrics logic itself:
+
+| | `app.py` (Streamlit) | `webapp/` (Flask) |
+|---|---|---|
+| Push mechanism | Streamlit's own server↔browser connection, driven by rewriting `st.empty()` placeholders in a loop | Server-Sent Events (`text/event-stream`) consumed by the browser's native `EventSource` |
+| Why this and not the other option | Zero frontend code to write - Python-only | Full control over markup/styling; a plain HTML page has no framework runtime tying it to one host |
+| Best for | Fastest way to get a working demo | A more typical full-stack shape (REST-ish upload endpoint + a real HTML/CSS/JS client) |
+
+Why SSE and not a raw WebSocket for the Flask app: updates only ever flow
+server → browser (upload is a plain POST, everything after is push), which
+is exactly what SSE is for. A WebSocket would add Flask-SocketIO plus an
+async worker (eventlet/gevent) for two-way messaging this app never uses;
+SSE works with Flask's ordinary WSGI request/response model and needs
+nothing beyond the standard library's `queue` for the producer/consumer
+hand-off between the background transcription thread and the streaming
+response.
+
+**Running it:**
+```bash
+python webapp/flask_app.py   # http://localhost:5000
+```
+
+**Important constraint if you ever deploy this behind a real WSGI server**
+(gunicorn, waitress, ...): job state (`_jobs` in `flask_app.py`) is a plain
+in-process dict, not shared across processes. This bit us once already
+during development - `debug=True`'s default reloader spawns a *second*
+Python process on file changes (via `subprocess`, since Windows can't
+`fork`), and that second process had its own empty `_jobs` dict, so a job
+created by the first process was invisible to the second and every upload
+failed with "unknown job". The fix here was `use_reloader=False`; the same
+class of bug will reappear with `gunicorn -w N` for any `N > 1`, so run it
+with a **single worker** (`gunicorn -w 1 --threads 8 -b 0.0.0.0:8000
+webapp.flask_app:app` - `--threads` still lets multiple SSE connections and
+uploads be served concurrently within that one process). Moving the job
+queue to something external (Redis, etc.) would remove this constraint, but
+is out of scope for this MVP.
+
 ## 2. Architecture
 
 ```
@@ -113,7 +154,7 @@ audio file (mp3/wav/...)
 └─────────────────┘
       │
       ▼
-outputs/<name>.json  ──▶  app.py (Streamlit)
+outputs/<name>.json  ──▶  app.py (Streamlit)  or  webapp/flask_app.py (Flask + SSE)
 ```
 
 Code layout:
@@ -121,16 +162,19 @@ Code layout:
 ```
 src/
   config.py         tunable thresholds (all in one place, documented)
-  transcription.py  faster-whisper wrapper
+  transcription.py  faster-whisper wrapper (blocking + streaming generator)
   diarization.py    voice-embedding clustering -> Teacher/Student turns
   analysis.py       question + response detection, silence
   metrics.py        engagement metric formulas/interpretation
   summary.py        stats-based summary + highlight extraction
   pipeline.py        orchestrates the above, caches JSON to outputs/
 scripts/
-  run_pipeline.py             CLI: process one audio file
+  run_pipeline.py             CLI: process one audio file (add --stream for progress)
   generate_sample_audio.ps1   builds the synthetic demo clip (see §5)
 app.py               Streamlit demo interface
+webapp/
+  flask_app.py        Flask + Server-Sent Events demo interface (see §2b)
+  templates/index.html, static/{style.css,app.js}
 tests/               unit tests for the analysis/metrics heuristics
 ```
 

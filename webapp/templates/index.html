@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classroom Voice Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>🎙️ Classroom Voice Analytics</h1>
+    <p>Converts classroom audio into a speaker-labeled transcript, teacher/student talk-time metrics,
+       and an auto-generated summary — fully offline-capable, no external API calls.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Sample sessions</h2>
+      <div class="row">
+        <select id="sample-select">
+          <option value="">Choose a precomputed session…</option>
+          {% for name in samples %}
+          <option value="{{ name }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+        <button id="load-sample-btn" type="button">Load</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Upload your own audio</h2>
+      <p class="hint">
+        Live mode uses the '{{ fast_model }}' Whisper model and processes at most the first
+        {{ max_minutes }} minutes, to keep inference time reasonable. Results stream in as the audio
+        is transcribed — transcript and metrics update live instead of waiting for the whole clip.
+      </p>
+      <form id="upload-form">
+        <input type="file" id="audio-file" name="audio" accept=".mp3,.wav,.m4a,.ogg" required>
+        <input type="text" id="language" name="language" placeholder="Language code, e.g. hi (optional)">
+        <button type="submit">Analyze</button>
+      </form>
+      <div id="progress-wrap" class="progress-wrap" hidden>
+        <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+        <span id="progress-label"></span>
+      </div>
+      <div id="error-box" class="error" hidden></div>
+    </section>
+
+    <section id="results" class="panel" hidden>
+      <h2>Classroom Summary</h2>
+      <p id="summary-text"></p>
+
+      <h2>Engagement Metrics</h2>
+      <div id="metric-cards" class="metric-cards"></div>
+      <details class="formulas">
+        <summary>Formulas &amp; interpretation</summary>
+        <div id="formulas-body"></div>
+      </details>
+
+      <h2>Talk-Time Breakdown</h2>
+      <div id="talktime-bar" class="talktime-bar"></div>
+      <div id="talktime-legend" class="talktime-legend"></div>
+
+      <h2>Highlights</h2>
+      <ul id="highlights-list"></ul>
+
+      <h2>Transcript</h2>
+      <div class="table-wrap">
+        <table id="transcript-table">
+          <thead><tr><th>Time</th><th>Speaker</th><th>Flags</th><th>Text</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
